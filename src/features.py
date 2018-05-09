@@ -72,7 +72,7 @@ def extract_features(df, genia_loc, max_d):
     Extracts part-of-speech, noun-phrase chunk and position features from a sentence.
 
     Args:
-        df - Pandas DataFrame containing sentence and tagged food-entity and disease entity.
+        df - Pandas DataFrame containing sentence and tagged food-entities and disease entities.
         genia_loc - Path to geniatagger executable.
         max_d - Value for maximum distance.
 
@@ -82,20 +82,19 @@ def extract_features(df, genia_loc, max_d):
     """
 
     fd, dd, chunkf, posf, wtokens = [], [], [], [], []
+    max_len = 0
     for i, row in df.iterrows():
 
         # Replace entity markers with original text.
         sen = row['Preprocessed']
-        orig_sen = sen.replace('[F]', row['Food Text'])
-        orig_sen = orig_sen.replace('[D]', row['Disease Text'])
+        orig_sen = sen.replace('[F]', row['Food Text']).replace('[D]', row['Disease Text'])
 
         # Replace entity markers with tagger compatible markers.
-        ent_sen = sen.replace('[F]', 'Foodentity')
-        ent_sen = ent_sen.replace('[D]', 'Diseaseentity')
+        ent_sen = sen.replace('[F]', 'Foodentity').replace('[D]', 'Diseaseentity')
 
         # Initialize Genia Tagger and parse sentences.
         tagger = GeniaTagger(genia_loc)
-        tagger_out = tagger.parse(orig_sen), tagger.parse(ent_sen)
+        tagger_out = tagger.parse(ent_sen), tagger.parse(orig_sen)
 
         # Tokenize sentence to workds
         word_token = extract_word_tokens(tagger_out)
@@ -115,4 +114,8 @@ def extract_features(df, genia_loc, max_d):
         pos_tags = extract_pos_features(tagger_out)
         posf.append(pos_tags)
 
-    return wtokens, fd, dd, chunkf, posf
+        # Update Max len.
+        if len(tagger_out[1]) > max_len:
+            max_len = len(tagger_out[1])
+
+    return fd, dd, chunkf, posf, wtokens, max_len
